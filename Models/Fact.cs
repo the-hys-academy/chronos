@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace chronos.Models{
     public class Fact{
                 
-        public int ID { get; set; } 
+        public long ID { get; set; } 
         
         public string Name { get; set; }
 

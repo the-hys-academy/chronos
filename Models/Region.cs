@@ -3,7 +3,7 @@ namespace chronos.Models{
     
     public class Region{
         
-        public int ID { get; set; }  // string or int ?
+        public long ID { get; set; }  
         
         public string Name { get; set; }
         
