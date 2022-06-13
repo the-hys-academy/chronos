@@ -4,6 +4,6 @@ namespace chronos.DAL.Interfaces;
 
 public interface ICreateRepository<T> where T: class
 {
-    Task Create(T model, CancellationToken ct, out DbError? error);
+    Task Create(T model, out DbError? error, CancellationToken ct = default);
 }
 

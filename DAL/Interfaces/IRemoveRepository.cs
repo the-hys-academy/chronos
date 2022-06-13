@@ -4,6 +4,6 @@ namespace chronos.DAL.Interfaces;
 
 public interface IRemoveRepository
 {
-    Task Remove(long id, CancellationToken ct, out DbError? error);
+    Task Remove(long id, out DbError? error, CancellationToken ct = default);
 }
 
