@@ -1,3 +1,4 @@
+
 create table if not exists facts (
     uid serial primary key,
     "desc" text NOT NULL,

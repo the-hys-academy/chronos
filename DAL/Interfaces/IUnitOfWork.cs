@@ -5,5 +5,5 @@ namespace chronos.DAL.Interfaces;
 public interface IUnitOfWork
 {
     // спорный момент, можно и не делать
-    void SaveChangesAsync(out DbError? error, CancellationToken ct = default); 
+    void SaveChangesAsync(ITransientError error, CancellationToken ct = default); 
 }

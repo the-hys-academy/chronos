@@ -2,8 +2,8 @@ using chronos.DAL.Enums;
 
 namespace chronos.DAL.Interfaces;
 
-public interface IRemoveRepository
+public interface IRemoveRepository<T> where T: class
 {
-    Task Remove(long id, out DbError? error, CancellationToken ct = default);
+    Task<T> Remove(long id, ITransientError error, CancellationToken ct = default);
 }
 
