@@ -10,7 +10,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+//text
 app.MapGet("/", () =>
 {
     return "CHRONOS: the God of Time.";
