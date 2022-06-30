@@ -2,9 +2,7 @@
 using Npgsql;
 using System.Data.Common;
 
-public interface IRegionRepository
-    {
-
+public interface IRegionRepository {
         Task<int?> Create(Region reg,
                     Error err,
                     CancellationToken ct = default);

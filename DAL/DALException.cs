@@ -1,5 +1,5 @@
 using Npgsql;
 using System.Data.Common;
-public sealed class DALException : DbException{
+public sealed class DALException : DbException {
 
 }
