@@ -1,30 +1,32 @@
 using chronos.Models;
 
 namespace chronos.DAL
-{    
-  public enum ErrorType {Ok, NoConnect, ClientError, Timeout, somethingelse};
+{  
+    public class Errors
+    {
+     public int ErrorNo { get; set; }
+    }
 
+  
   public interface IRegionRepository
   {
-    Task CreateRegionRecord(string Name,            
-                            IEnumerable<(long lat, long lon)> Polygon,
-                            out ErrorType errorState,
-                            CancellationToken ct = default); 
+    Task<long> Create(Region region,            
+                Errors error,
+                CancellationToken ct = default); 
       
-    Task UpdateRegionRecord(long id,           
-                            string Name, 
-                            IEnumerable<(long lat, long lon)> Polygon, 
-                            out ErrorType errorState, 
-                            CancellationToken ct = default);
+    Task Update(Region region,     
+                Errors error,
+                CancellationToken ct = default);
         
-    Task DeleteRegionRecord(long id,
-                            out ErrorType errorState, 
-                            CancellationToken ct = default);
+    Task<Region> Delete(long id,
+                        Errors error,
+                        CancellationToken ct = default);
         
-    Task<Region> GetRegionSingleRecord(long id,
-                                      out ErrorType errorState, 
-                                      CancellationToken ct = default);
+    Task<Region> Get( long id,
+                      Errors error, 
+                      CancellationToken ct = default);
       
-    Task<List<Region>> GetRegionRecords();
+    Task<IEnumerable<Region>> Get(Errors error, 
+                                  CancellationToken ct = default);
   }
 }

@@ -1,3 +1,4 @@
+using NpgsqlTypes;
 
 namespace chronos.Models{
     
@@ -7,6 +8,16 @@ namespace chronos.Models{
         
         public string Name { get; set; }
         
-        public IEnumerable<( float, float )> Polygon { get; set; }
+        public NpgsqlPolygon Polygon { get; set;}
+
+        public Region(string Name, NpgsqlPolygon Polygon) 
+        {
+            this.Name = Name;
+            this.Polygon = Polygon;
+        }
+
+        public Region()
+        {
+        } 
     }
 }
