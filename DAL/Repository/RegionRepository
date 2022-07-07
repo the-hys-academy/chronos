@@ -1,0 +1,165 @@
+using Npgsql;
+using Npgsql.Util;
+using NpgsqlTypes;
+using System.Collections;
+using System.Collections.Generic;
+
+public sealed class RegionRepository: IRegionRepository 
+{
+    private readonly string _connStr;
+    public RegionRepository(string connStr) 
+    {
+        _connStr = connStr;
+    }
+    async private static Task <NpgsqlConnection> DbConnection(CancellationToken ct = default)
+    {
+        var repos = new RegionRepository("Host=localhost;Username=hys;Password=123;Database=mydatabase");
+        await using var conn = new NpgsqlConnection(repos._connStr);
+        await conn.OpenAsync(ct);
+        return conn;
+
+    }
+    public async Task<long?> Create(Region reg, Error err, CancellationToken ct = default)
+    {
+        try
+        {
+        // Create table and Insert some data
+            await using (var cmd = new NpgsqlCommand(
+            "CREATE TABLE IF NOT EXISTS Region (id serial primary key, name varchar(150), region polygon )", 
+            await DbConnection() ) )
+            {
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            await using (var cmd = new NpgsqlCommand(
+            "INSERT INTO Region(name, region) VALUES (@region) RETURNING Id", 
+            await DbConnection() ) )
+            {
+                cmd.Parameters.AddWithValue("name", reg.name);
+                cmd.Parameters.AddWithValue("region",reg.MapingToNpgsqlPolygon());
+                err.ErrorNo = 0;
+                var id = (long?)await cmd.ExecuteScalarAsync(ct);
+                return id;
+            }
+        
+    }
+    catch (NpgsqlException exn)
+    {
+        err.ErrorNo=exn.IsTransient ? 1 :-1;
+        err.IsRetriableError=exn.IsTransient;
+
+            if (err.ErrorNo==-1)//error codn't correct via retry
+            {
+                throw new DALException();
+            }
+        return null;
+    }
+    }  
+   public async Task<Region?> Get(long id, Error err, CancellationToken ct = default)
+   {
+        try 
+        {
+            await using (var cmd = new NpgsqlCommand("SELECT * FROM Region WHERE id = @id", 
+            await DbConnection())) 
+            {
+                cmd.Parameters.AddWithValue("id", id);
+                var reader = await cmd.ExecuteReaderAsync();
+                    if(! await reader.ReadAsync(ct))
+                    {
+                        err.ErrorNo = 1; // not found, object with such id is not exist
+                        return null;
+                    }
+                
+                var _region = new Region();
+                var tmp =_region.MapingToRegionPolygon(reader.GetFieldValue<NpgsqlPolygon>(2));
+
+                _region.id = reader.GetInt64(0);
+                _region.name = reader.GetString(1);
+                _region.polygon = tmp;
+                
+                return _region;
+            }
+        }
+        catch (NpgsqlException exn) 
+        {
+            err.ErrorNo = exn.IsTransient ? 1 : -1;
+            if (err.ErrorNo == -1)
+                throw exn;
+            return null;
+        }
+    
+    }
+   
+    public async Task<Region?> Update(Region reg, Region newReg, Error err, CancellationToken ct = default)
+    {
+        try 
+            {
+                await using (var cmd = new NpgsqlCommand(
+                "UPDATE Region SET name = @newname, polygon = @newpolygon WHERE id = @id", 
+                await DbConnection())) 
+                {
+                    cmd.Parameters.AddWithValue("id", reg.id);
+                    cmd.Parameters.AddWithValue("name", newReg.id);
+                    cmd.Parameters.AddWithValue("polygon", newReg.polygon);
+                    var reader = await cmd.ExecuteReaderAsync();
+                        if(! await reader.ReadAsync(ct))
+                        {
+                            err.ErrorNo = 1; // not found, object with such id is not exist
+                            return null;
+                        }
+                    
+                    var _region = new Region();
+                    var tmp =_region.MapingToRegionPolygon(reader.GetFieldValue<NpgsqlPolygon>(2));
+    
+                    _region.id = reader.GetInt64(0);
+                    _region.name = reader.GetString(1);
+                    _region.polygon = tmp;
+                    
+                    return _region;
+                }
+            }
+            catch (NpgsqlException exn) 
+            {
+                err.ErrorNo = exn.IsTransient ? 1 : -1;
+                if (err.ErrorNo == -1)
+                    throw exn;
+                return null;
+            }
+    
+    }
+    public async Task<Region?> Delete(long id, Error err, CancellationToken ct=default)
+    {
+        try 
+            {
+                await using (var cmd = new NpgsqlCommand(
+                "DELETE FROM Region WHERE id = @id", 
+                await DbConnection())) 
+                {
+                    cmd.Parameters.AddWithValue("id", id);
+                    
+                    var reader = await cmd.ExecuteReaderAsync();
+                        if(! await reader.ReadAsync(ct))
+                        {
+                            err.ErrorNo = 1; // not found, object with such id is not exist
+                            return null;
+                        }
+                    
+                    var _region = new Region();
+                    var tmp =_region.MapingToRegionPolygon(reader.GetFieldValue<NpgsqlPolygon>(2));
+    
+                    _region.id = reader.GetInt64(0);
+                    _region.name = reader.GetString(1);
+                    _region.polygon = tmp;
+                    
+                    return _region;
+                }
+            }
+            catch (NpgsqlException exn) 
+            {
+                err.ErrorNo = exn.IsTransient ? 1 : -1;
+                if (err.ErrorNo == -1)
+                    throw exn;
+                return null;
+            }
+    }
+}
