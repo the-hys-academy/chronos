@@ -6,7 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 var app = builder.Build();
 
@@ -16,19 +15,25 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var db = new RegionsRepository(app.Configuration.GetConnectionString("DefaultConnection"));
+await using var db = new RegionsRepository(app.Configuration.GetConnectionString("DefaultConnection"));
+
 var errno = new TransientErrorWrapper();
 var region = new Region
 {
     Name = "region 1",
     Polygon = new []
     {
-        new Region.GeoPoint{ Latitude = 1, Longitude = 1},
-        new Region.GeoPoint{ Latitude = 2, Longitude = 2},
-        new Region.GeoPoint{ Latitude = 1, Longitude = 1},
+        new Region.GeoPoint{ Longitude = 1.5, Latitude = 3.0},
+        new Region.GeoPoint{ Longitude = 3, Latitude = 5.9},
+        new Region.GeoPoint{ Longitude = 5, Latitude = 9.7},
     }
 };
-await db.Create(region, errno);
+
+var id = await db.Create(region, errno);
+if (errno.Errno == TransientErrors.Timeout)
+    Console.WriteLine("Error");
+else
+    Console.WriteLine($"id =  {id}");
 
 
 app.MapGet("/", () =>

@@ -1,5 +1,3 @@
-using chronos.DAL.Enums;
-
 namespace chronos.DAL.Interfaces;
 
 public interface IGetRepository<T> where T: class

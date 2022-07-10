@@ -1,4 +1,4 @@
-using AutoMapper;
+using chronos.DAL.Extensions;
 using chronos.DAL.Interfaces;
 using chronos.DAL.Models;
 using Npgsql;
@@ -8,16 +8,17 @@ namespace chronos.DAL.Repositories;
 using T = Region;
 
 public class RegionsRepository: 
-    IGetRepository<T>, IGetAllRepository<T>, ICreateRepository<T>, IUpdateRepository<T>, IRemoveRepository<T>
+    IGetRepository<T>, IGetAllRepository<T>, ICreateRepository<T>, IUpdateRepository<T>, 
+    IRemoveRepository<T>, IAsyncDisposable
 {
     private readonly string _connectionString;
-    // private readonly IMapper _mapper;
-    
+    private NpgsqlConnection? _connection;
+
     public RegionsRepository(string connectionString)
     {
         _connectionString = connectionString;
     }
-    
+
     public async Task<Region> Get(long id, ITransientError error, CancellationToken ct = default)
     {
         throw new NotImplementedException();
@@ -28,26 +29,28 @@ public class RegionsRepository:
         throw new NotImplementedException();
     }
 
-    public async Task<Region> Create(Region model, ITransientError error, CancellationToken ct = default)
+    public async Task<long> Create(Region model, ITransientError error, CancellationToken ct = default)
     {
-        var polygon = new NpgsqlPolygon(model.Polygon
-            .Select(x => new NpgsqlPoint(x.Latitude, x.Longitude)));
-        
         try
         {
-            await using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync(ct);
+            if (_connection is null)
+                await this.OpenConnection(ct);
             
-            const string sql = "INSERT INTO regions(pretty_name, polygon) VALUES (@name, @polygon)";
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("name",  model.Name);
-            command.Parameters.AddWithValue("polygon", polygon);
-            await command.ExecuteNonQueryAsync(ct);
-            return default;
+            const string sql = "INSERT INTO regions(pretty_name, polygon) VALUES (@name, @polygon) RETURNING id";
+            await using var command = new NpgsqlCommand(sql, _connection);
+            command.Parameters.AddWithValue("name", model.Name);
+            command.Parameters.AddWithValue("polygon", NpgsqlDbType.Polygon, model.Polygon.ToNpgsql());
+            return (long)await command.ExecuteScalarAsync(ct);
         }
         catch (NpgsqlException ex)
         {
-            throw ex;
+            if (ex.IsTransient)
+            {
+                error.Errno = TransientErrors.Timeout;
+                return default;
+            }
+            else
+                throw new DalException(ex.Message, ex);
         }
     }
 
@@ -59,5 +62,16 @@ public class RegionsRepository:
     public async Task<Region> Remove(long id, ITransientError error, CancellationToken ct = default)
     {
         throw new NotImplementedException();
+    }
+    
+    private async Task OpenConnection(CancellationToken ct = default)
+    {
+        _connection = new NpgsqlConnection(_connectionString);
+        await _connection.OpenAsync(ct);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _connection?.CloseAsync();
     }
 }
