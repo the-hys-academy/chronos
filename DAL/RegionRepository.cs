@@ -99,7 +99,7 @@ namespace Draft
                     stringCommand += "UPDATE Region SET polygon = @polygon WHERE id = @id;";
                 }
 
-                await using (var command = new NpgsqlCommand(stringCommand, connection))  
+                await using (var command = new NpgsqlCommand(stringCommand, connection))
                 {
                     command.Parameters.AddWithValue("id", region.Id);
                     if (region.Name != null)
@@ -160,6 +160,41 @@ namespace Draft
                 return null;
             }
         }
+
+        public async IAsyncEnumerable<Region> GetRegions(Error error, CancellationToken cancellationToken = default)
+        {
+            NpgsqlConnection connection = new NpgsqlConnection(_connectionString);
+            try
+            {
+                await connection.OpenAsync(cancellationToken);
+            }
+            catch (NpgsqlException ex)
+            {
+                error.ErrorNumber = ex.IsTransient ? 1 : -1;
+                error.IsTransient = ex.IsTransient;
+
+                if (error.ErrorNumber == -1)
+                    throw new DALException();
+            }
+
+            await using (var command = new NpgsqlCommand("SELECT * FROM Region;", connection))
+            {
+                using (var dataReader = command.ExecuteReader())
+                {
+                    while (dataReader.HasRows && dataReader.Read())
+                    {
+                        Region region = new Region();
+                        region.Id = Convert.ToInt32(dataReader["id"]);
+                        region.Name = dataReader["name"].ToString();
+                        region.Polygon = StringPolygonToRegionPolygon(dataReader["polygon"].ToString());
+
+                        yield return region;
+                    }
+                }
+            }
+
+        }
+
         private NpgsqlPolygon RegionPolygonToNpgsqlPolygon(IEnumerable<(double longitude, double latitude)> polygon)
         {
             var npgsqlPoints = new List<NpgsqlPoint>();
